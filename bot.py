@@ -431,13 +431,13 @@ async def test_sheet_send_now() -> None:
     One-off run: read sheet -> build "tomorrow" message -> send to CHAT_ID, then exit.
     Useful for manual testing without waiting for 12:00.
     """
-    token = env_get("TELEGRAM_TOKEN")
+    token = env_get("TELEGRAM_TOKEN") or env_get("BOT_TOKEN") or env_get("TELEGRAM_BOT_TOKEN")
     chat_id = env_get("CHAT_ID")
     sheet_name = env_get("GOOGLE_SHEET_NAME")
     credentials_path = _get_credentials_path()
 
     if not token:
-        raise RuntimeError("TELEGRAM_TOKEN is missing in .env")
+        raise RuntimeError("TELEGRAM_TOKEN (или BOT_TOKEN) не задан. Добавьте в .env или переменные окружения.")
     if not chat_id or not sheet_name:
         raise RuntimeError("CHAT_ID or GOOGLE_SHEET_NAME is missing in .env")
 
@@ -602,9 +602,11 @@ def main() -> None:
         asyncio.run(test_sheet_send_now())
         return
 
-    token = env_get("TELEGRAM_TOKEN")
+    token = env_get("TELEGRAM_TOKEN") or env_get("BOT_TOKEN") or env_get("TELEGRAM_BOT_TOKEN")
     if not token:
-        raise RuntimeError("TELEGRAM_TOKEN is missing in .env")
+        raise RuntimeError(
+            "TELEGRAM_TOKEN (или BOT_TOKEN) не задан. Добавьте токен в переменные окружения на хостинге."
+        )
 
     try:
         acquire_single_instance_lock(_lockfile_path(token))
