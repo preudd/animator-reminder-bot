@@ -1,0 +1,23 @@
+# Python venv
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Editor/OS files
+.vscode/
+.idea/
+*.log
+Thumbs.db
+*.tmp
+
+# Secrets and local config
+.env
+credentials.json
+credentials.json.json
+
+# Local helper scripts output
+bot.pid
+
