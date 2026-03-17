@@ -74,6 +74,42 @@ def _normalize_header(s: str) -> str:
     return s
 
 
+def _get_credentials_path() -> str:
+    """
+    Returns path to Google credentials.
+    If GOOGLE_CREDENTIALS_JSON env var is set, writes it to temp file (for hosting without files).
+    """
+    import json
+
+    json_str = env_get("GOOGLE_CREDENTIALS_JSON")
+    if json_str:
+        try:
+            data = json.loads(json_str)
+            fd, path = tempfile.mkstemp(suffix=".json", prefix="gcreds_")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False)
+                return path
+            except Exception:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+                raise
+        except json.JSONDecodeError as e:
+            raise ValueError(f"GOOGLE_CREDENTIALS_JSON: invalid JSON: {e}") from e
+
+    path = env_get("GOOGLE_CREDENTIALS_PATH", "credentials.json")
+    if path == "credentials.json" and not os.path.exists(path):
+        if os.path.exists("credentials.json.json"):
+            return "credentials.json.json"
+    return path
+
+
 def get_rows_from_sheet(sheet_name: str, credentials_path: str) -> List[Dict[str, Any]]:
     """
     Reads ALL rows as dictionaries (header -> value).
@@ -357,7 +393,7 @@ async def daily_job(app: Application) -> None:
     LOGGER.info("Daily job started")
     chat_id = env_get("CHAT_ID")
     sheet_name = env_get("GOOGLE_SHEET_NAME")
-    credentials_path = env_get("GOOGLE_CREDENTIALS_PATH", "credentials.json")
+    credentials_path = _get_credentials_path()
 
     if not chat_id or not sheet_name:
         LOGGER.error("Missing CHAT_ID or GOOGLE_SHEET_NAME in .env")
@@ -398,7 +434,7 @@ async def test_sheet_send_now() -> None:
     token = env_get("TELEGRAM_TOKEN")
     chat_id = env_get("CHAT_ID")
     sheet_name = env_get("GOOGLE_SHEET_NAME")
-    credentials_path = env_get("GOOGLE_CREDENTIALS_PATH", "credentials.json")
+    credentials_path = _get_credentials_path()
 
     if not token:
         raise RuntimeError("TELEGRAM_TOKEN is missing in .env")
